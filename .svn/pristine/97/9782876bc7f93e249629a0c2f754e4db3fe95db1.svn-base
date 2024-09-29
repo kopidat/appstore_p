@@ -1,0 +1,136 @@
+package skimp.partner.store;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
+import m.client.android.library.core.common.CommonLibHandler;
+import m.client.android.library.core.utils.Logger;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.res.AssetManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
+import android.webkit.WebView;
+
+import com.funnnew.android.fnnlibrary.FNNCheckMDS;
+
+
+/**
+ * Startup Class
+ * 
+ * @author 김태욱(<a mailto="tukim@uracle.co.kr">tukim@uracle.co.kr</a>)
+ * @version v 1.0.0
+ * @since Android 2.1 <br>
+ *        <DT><B>Date: </B>
+ *        <DD>2013.08.01</DD>
+ *        <DT><B>Company: </B>
+ *        <DD>Uracle Co., Ltd.</DD>
+ * 
+ * 앱이 구동 될 시 시작되는 Activity 
+ * 해당 Activity는 최초 앱 구동 후 실제 webApplication이 로딩 후(BaseActivity) 
+ * 종료 된다. 
+ * 
+ * Copyright (c) 2011-2013 Uracle Co., Ltd. 
+ * 166 Samseong-dong, Gangnam-gu, Seoul, 135-090, Korea All Rights Reserved.
+ */
+
+public class Startup extends Activity {
+	
+	private String CLASS_TAG = "Startup";
+	private CommonLibHandler commLibHandle = CommonLibHandler.getInstance();
+
+    private static final boolean sCheckMDM = true;
+
+    /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+  	
+
+    	super.onCreate(savedInstanceState);
+
+        if(BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+
+        if(sCheckMDM) {
+            // MDM 체크
+            checkMDM();
+        } else {
+            goMainActivity();
+        }
+    }
+
+    private void goMainActivity() {
+        ////////////////////////////////////////////////////////////////////////////////
+        // - 중요 -
+        // 최초 시작 Activity에 아래의 코드를 넣어야 한다.
+
+        commLibHandle.processAppInit(this);
+        ////////////////////////////////////////////////////////////////////////////////
+    }
+
+    /**
+     * 최초 FNNCheckMDS.getInstance(this).getStatusMDS(getIntent()); 호출하면
+     * MDS 앱 실행되면서 FNNCheckMDS.TYPE_CHECK_MDS 리턴되고 이후 MDS 앱에서 다시 우리 앱을 실행한다.
+     * FNNCheckMDS.TYPE_STATUS_MDM_ON 일때만 앱 실행
+     */
+    private void checkMDM() {
+        Log.i(CLASS_TAG, "checkMDM()");
+        int mdmResult = FNNCheckMDS.getInstance(this).getStatusMDS(getIntent());
+        Log.e(CLASS_TAG, "mdmResult = " + mdmResult);
+        switch (mdmResult) {
+            // 최초 getStatusMDS 호출하면 반환되는 값
+            case FNNCheckMDS.TYPE_CHECK_MDS:
+                finish();
+                break;
+            // SK MDS 미설치 설치 링크 이동
+            case FNNCheckMDS.TYPE_NOT_INSTALLED:
+                showMDMErrorDialog(mdmResult, "보안앱(MDS)이 설치되지 않았습니다.\n설치 페이지로 이동합니다.");
+                break;
+            // SK MDS 설치는 되어있지만 미 가입 상태인 경우
+            case FNNCheckMDS.TYPE_NOT_JOINED:
+                showMDMErrorDialog(mdmResult, "보안앱(MDS)에 로그인해주세요.");
+                break;
+            // SK MDS 의 제어 상태가 ON 인 경우
+            case FNNCheckMDS.TYPE_STATUS_MDM_ON:
+                goMainActivity();
+                break;
+            // SK MDS 의 제어 상태가 OFF 인 경우
+            case FNNCheckMDS.TYPE_STATUS_MDM_OFF:
+                showMDMErrorDialog(mdmResult, "보안 OFF 상태입니다.\n보안앱(MDS)을 실행해 ON으로 변경해주세요.");
+                break;
+        }
+    }
+
+    private void showMDMErrorDialog(int errorCode, String message) {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        alertDialog.setTitle("알림");
+        alertDialog.setMessage(message);
+        alertDialog.setNegativeButton("종료", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+
+        if(errorCode == FNNCheckMDS.TYPE_NOT_INSTALLED) {
+            alertDialog.setPositiveButton("이동", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+//                    String url = "https://mds.skinnovation.com/downloads"; // 운영
+                    String url = "https://svr.funnnew.com:24005/downloads"; // 테스트
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    startActivity(intent);
+                    finish();
+                }
+            });
+        }
+        alertDialog.show();
+    }
+
+}

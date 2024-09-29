@@ -1,0 +1,6 @@
+KEYSTORE_ALIAS=
+KEYSTORE_ALIAS_PW=
+KEYSTORE_PATH=
+KEYSTORE_PW=
+android.useAndroidX=true
+android.enableJetifier=true

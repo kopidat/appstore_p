@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="register_title_1">비밀번호 등록</string>
+    <string name="register_title_2">비밀번호 등록[검증]</string>
+    <string name="register_descript_1">숫자 %d자리를 입력하세요.</string>
+    <string name="register_descript_2">숫자 %d자리를 입력하세요.</string>
+    <string name="reset">초기화</string>
+    <string name="auth_title">비밀번호 확인</string>
+    <string name="auth_descript">숫자 %d자리를 입력하세요.</string>
+</resources>

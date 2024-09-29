@@ -1,0 +1,372 @@
+/**
+ * SKIMP-FR-003.js
+ * @ 로그인
+ * 2021.05.21
+ */
+var pageInit = function(){
+
+	//로그인 5회 실패시 5분동안 로그인 사용못하도록 처리
+	if(!StringUtil.isEmpty(MData.storage('timerMinute'))){
+		if(timerDiffTime()){
+			openPopup('layer02', setTimer());
+		}
+	}else{
+		easyLoginUseCheck();
+	}
+
+	pageEvent();
+};
+
+var pageEvent = function(){
+
+
+
+	//아이디와 비밀번호 모두 입력시 로그인버튼 활성화
+	$(document).on('keyup', '#userId, #userPw', function(e){
+		//아이디 입력수 숫자, 영어만 가능
+		if($(e.target).attr('id') == "userId"){
+			var thisText = $(e.target).val();
+			var checkId = /^[A-Za-z0-9+]*$/.test(thisText);
+
+			if(!checkId){
+				$(e.target).val( $(e.target).val().slice(0,-1));
+			}
+		}
+
+		if(!StringUtil.isEmpty($('#userId').val()) && !StringUtil.isEmpty($('#userPw').val())){
+			$('#btnLogin').removeAttr('disabled');
+		}else{
+			$('#btnLogin').attr('disabled', true);
+		}
+	});
+
+	//로그인버튼
+	$(document).on('click', '#btnLogin', function(){
+		if(StringUtil.isEmpty($('#userId').val())){
+			MPopup.alert("아이디를 입력해주세요.");
+		}else if(StringUtil.isEmpty($('#userPw').val())){
+			MPopup.alert("비밀번호를 입력해주세요.");
+		}else{
+			login();
+		}
+	});
+};
+
+
+//앱 종료시 타이머시간과 경과시간의 차이 계산
+var timerDiffTime = function(){
+	var endTime = Number(MData.storage('endTime'));
+	var curTime = Number(moment().format('YYYYMMDDHHmmss'));
+	//현재시간에서 앱종료시 남은시간과의 차이
+	var diffTime = curTime - endTime;
+
+	//로그인 5회 실패 이후 5분 경과했을 때
+	if(diffTime >= 300){
+		MData.removeStorage('timerMinute');
+		MData.removeStorage('timerSecond');
+		MData.removeStorage('endTime');
+
+		return false;
+	}else{
+		var timerMinute = 0;
+		var timerSecond = 0;
+
+		//재시작까지 남은 분이 diffTime 보다 작은 경우
+		if(Number(MData.storage('timerMinute')) < parseInt(diffTime/60)){
+			MData.removeStorage('timerMinute');
+			MData.removeStorage('timerSecond');
+			MData.removeStorage('endTime');
+
+			return false;
+		}
+		//재시작까지 남은 분이 diffTime 과 같고 남은 초가 diffTime 보다 작은 경우
+		else if(Number(MData.storage('timerMinute')) == parseInt(diffTime/60) && Number(MData.storage('timerSecond')) < (diffTime%60)){
+			MData.removeStorage('timerMinute');
+			MData.removeStorage('timerSecond');
+			MData.removeStorage('endTime');
+
+			return false;
+		}
+		//재시작까지 남은 시간이 diffTime 보다 큰 경우
+		else{
+			//종료시 남은 초가 diffTime 보다 작으면 1분 내리고 60초 추가
+			if(Number(MData.storage('timerSecond')) < diffTime%60){
+				timerMinute = Number(MData.storage('timerMinute')) - parseInt(diffTime/60) -1;
+				timerSecond = Number(MData.storage('timerSecond')) - diffTime%60 + 60;
+			}else{
+				timerMinute = Number(MData.storage('timerMinute')) - parseInt(diffTime/60);
+				timerSecond = Number(MData.storage('timerSecond')) - diffTime%60;
+			}
+
+			MData.storage('timerMinute', timerMinute);
+			MData.storage('timerSecond', timerSecond);
+
+			return true
+		}
+	}
+};
+
+
+//생체인증 사용여부 판단
+var easyLoginUseCheck = function(){
+	//간편로그인이 사용으로 되어 있을 경우 마지막 사용한 간편인증 방법 불러옴
+	if(MData.storage('useEasyLogin') == "Y"){
+		if(MData.storage('lastLoginType') == "BIO"){
+			bioCert.auth((status, result) => {
+				if(result.message == "SUCCESS"){
+					MData.storage('lastLoginType', 'BIO');
+					login();
+				}else{
+					//에러코드 7 : 시도횟수가 너무 많아 지문사용 불가능일때
+					if(result.errorCode != "7"){
+						MPopup.alert({
+							message : "지문인식에 실패하였습니다. 다시 시도해주세요.",
+							callback : function(){
+								easyLoginUseCheck();
+							}
+						});
+					}else{
+						MPopup.alert({
+							message : "지문인식에 실패하였습니다.",
+						});
+					}
+				}
+			});
+		}
+		else if(MData.storage('lastLoginType') == "PATTERN"){
+			ptCert.lock((status, result) => {
+				if(result.message == "SUCCESS"){
+					MData.storage('lastLoginType', 'PATTERN');
+					login();
+				}else{
+					MPopup.alert({
+						message : "패턴이 틀렸습니다."
+					});
+				}
+			});
+		}
+		else if(MData.storage('lastLoginType') == "PIN"){
+			pinCert.auth((status, result) => {
+				if(result.message == "SUCCESS"){
+					MData.storage('lastLoginType', 'PIN');
+					login();
+				}else{
+					MPopup.alert({
+						message : "PIN 번호가 틀렸습니다."
+					});
+				}
+			});
+		}
+	};
+};
+
+
+
+//로그인
+var login = function(){
+	var tokenData = MData.storage('encData').token === "" ? "" : MData.storage('encData').token;
+	var endPwdData = MData.storage('encData').encPwd === "" ? "" : MData.storage('encData').encPwd;
+	var simpleYnData = MData.storage("useEasyLogin") == "Y" ? "Y" : "N";
+
+	var encId = M.execute('exWNAES256Encrypt', "ia02155");
+	var encPw = M.execute('exWNAES256Encrypt', "SK12345678");
+
+	MNet.httpSend({
+		path : "skimp/common/api/auth/SKIMP-0002",
+		sendData : {
+			token : tokenData,
+            encPwd : endPwdData,
+            intfId : "SKIMP-0002",
+            userId : encId,			//$('#userId').val(),
+            passwd : encPw,		//$('#userPw').val(),
+            osName : "Android",
+            osVersion : "28",
+            mdn : "3",
+            pakgId : "mcore.edu.demoGuide",
+            binVer : "1.0.0",
+            regularityYN : "Y",
+            simpleYN : simpleYnData,
+		},
+		callback : function(rst, setting){
+			console.log(rst);
+			if(rst.status == "1000"){
+				//개별앱에서 필요한 로그인 정보를 Native 에 저장
+				M.execute('exWNSetUserInfo', {
+					userId : encId,
+					userPw : encPw,
+					token : rst.tokenm,
+				});
+
+				//앱스토어 전문에서 사용할 encData 저장
+				MData.storage('encData', {
+					token : rst.token,
+					encPwd : rst.encPwd,
+					userId : $('#userId').val(),
+				});
+
+				loginAuth();
+			}
+		},
+		errCallback : function(errCd, errMsg){
+			console.log(errCd, errMsg);
+		}
+	});
+};
+
+
+
+//로그인 인증
+var loginAuth = function(){
+	MNet.httpSend({
+		path : "skimp/common/api/auth/SKIMP-0001",
+		sendData : {
+			token : MData.storage('encData').token,
+			encPwd : MData.storage('encData').encPwd,
+			intfId : "SKIMP-0001",
+			osName : "Android",
+			osVersion : "28",
+			mdn : "3",
+			pakgId : "mcore.edu.demoGuide",
+			binVer : "1.0.0",
+			regularityYN : "N",	//정규직원 여부
+		},
+		callback : function(rst, setting){
+			console.log(rst);
+
+			if(rst.status == "1000"){
+				if(MData.storage('firstLogin') == "N"){
+					MPage.html({
+						url : "SKIMP-FR-007.html",
+						action : "CLEAR_TOP",
+					});
+				}else{
+					MPage.html({
+						url : "SKIMP-FR-004.html",
+						action : "CLEAR_TOP",
+					});
+				}
+
+			}
+
+//			M.plugin('push').remote.registerServiceAndUser({
+//				cuid: 'admin',
+//				name: 'admin',
+//				callback: function( status ) {
+//					var info = M.plugin('push').info();
+//
+//					if (status.status == 'SUCCESS') {
+//						console.log('[' + info.CLIENT_UID + '/' + info.CLIENT_NAME + ']의 서비스/유저 등록을 성공 하였습니다.');
+//
+//						if(rst.status == "1000"){
+//							if(MData.storage('firstLogin') == "N"){
+//								MPage.html({
+//									url : "SKIMP-FR-007.html",
+//									action : "CLEAR_TOP",
+//								});
+//							}else{
+//								MPage.html({
+//									url : "SKIMP-FR-004.html",
+//									action : "CLEAR_TOP",
+//								});
+//							}
+//						}
+//					}
+//					else {
+//						console.log('[' + info.CLIENT_UID + '/' + info.CLIENT_NAME + ']의 서비스/유저 등록을 실패 하였습니다.');
+//					}
+//				}
+//            });
+
+		},
+		errCallback : function(errCd, errMsg){
+			console.log(errCd, errMsg);
+		}
+	});
+}
+
+
+
+//간편로그인 호출
+var callEasyLogin = function(){
+	if(MData.storage('useEasyLogin') == "Y"){
+		//마지막 사용한 간편로그인이 지문인 경우
+		if(MData.storage('lastLoginType') == "BIO"){
+			bioCert.auth((status, result) => {
+				console.log(status);
+				console.log(result);
+				if(status == "SUCCESS" && result.result == "SUCCESS"){
+					MData.storage('lastLoginType', 'BIO');
+					MData.storage('BioLoginData', 'Y');
+					Login();
+				}else{
+					MPopup.alert({
+						message : "생체 인증 로그인에 실패했습니다."
+					});
+				}
+			});
+		}
+		//마지막 사용한 간편로그인이 패턴인 경우
+		else if(MData.storage('lastLoginType') == "PATTERN"){
+			ptCert.lock((status, result) => {
+				console.log(status);
+				console.log(result);
+				if(result.message == "SUCCESS"){
+					M.pop.alert('result : ' + JSON.stringify(result));
+					MData.storage('lastLoginType', 'PATTERN');
+					MData.storage('PatternLoginData', 'Y');
+					Login();
+				}else{
+					MPopup.alert({
+						message : "패턴이 틀렸습니다."
+					});
+				}
+			});
+		}
+		//마지막 사용한 간편로그인이 핀인 경우
+		else if(MData.storage('lastLoginType') == "PIN"){
+			pinCert.auth((status, result) => {
+				console.log(status);
+
+				if(result.message == "SUCCESS"){
+					MData.storage('lastLoginType', 'PIN');
+					MData.storage('PinLoginData', 'Y');
+					Login();
+				}else{
+					MPopup.alert({
+						message : "PIN 번호가 틀렸습니다."
+					});
+				}
+			});
+		}
+	}
+}
+
+
+var MStatus = {
+		onReady : function(){
+			pageInit();
+		},
+
+//		onBack : function(){
+//
+//		},
+
+		onRestore : function(){
+
+		},
+
+		onHide : function(){
+		},
+
+		onDestroy : function(){
+		},
+
+		onPause : function(){
+			MData.storage('timerMinute', $('.time').attr('timerMinute'));
+			MData.storage('timerSecond', $('.time').attr('timerSecond'));
+			MData.storage('endTime', moment().format('YYYYMMDDHHmmss'));
+		},
+
+		onResume : function(){
+		}
+}

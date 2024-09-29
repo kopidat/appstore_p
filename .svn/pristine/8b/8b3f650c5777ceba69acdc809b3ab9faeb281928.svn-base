@@ -1,0 +1,101 @@
+/**
+ * SKIMP-FR-020.js
+ * @ 첨부파일 뷰어
+ * 2021.06.03
+ */
+var pageIdxCnt = 0;
+var fileConvertStamp = MData.param('stamp');
+var fileConvertId = MData.param('id');
+var allPageCnt = MData.param('pageCnt');
+
+var pageInit = function(){
+	pageEvent();
+
+	drawImageViewer();
+};
+
+var pageEvent = function(){
+
+	$(document).on('click', '.btn-next', function(){
+		pageIdxCnt += 1;
+
+		var offset1 = $('#idx'+pageIdxCnt).position().top;
+		$('html').animate({scrollTop : offset1}, 400);
+
+		$('.number').text(pageIdxCnt+'/'+allPageCnt);
+	});
+
+	$(document).on('click', '.btn-prev', function(){
+		if(0 <= pageIdxCnt){
+			pageIdxCnt -= 1;
+			var offset = $('#idx'+pageIdxCnt).offset();
+			$('html').animate({scrollTop : offset.top}, 400);
+
+			$('.number').text(pageIdxCnt+'/'+allPageCnt);
+		}
+	});
+
+
+	$(window).on('scroll', function() {
+		var scrollTop = $(this).scrollTop();
+		var wHeight = $(this).height();
+
+		$("#content div").each(function(idx, div) {
+			var offset = $(div).offset().top;
+			if (offset > scrollTop && offset < (scrollTop + wHeight)){
+				$('.number').text(idx-2+'/'+allPageCnt);
+			}
+		});
+	});
+
+};
+
+
+var drawImageViewer = function(){
+	var listHtml = '';
+
+	for(var i=1; i<=allPageCnt; i++){
+		 listHtml += '<div class="a" id="idx'+i+'"><img src="https://dev-skimp2.skinnovation.com/doc/file/download/'+fileConvertId+'/'+i+'.stream?stamp='+fileConvertStamp+'" alt=""></div>'
+	}
+
+	$('.content .view').append(listHtml);
+
+	for(var i=0; i<$('#content div').length; i++){
+		$('#content div').eq(i).attr('data-height', Math.ceil($('#content div').eq(i).position().top));
+	}
+
+	$('.number').text('1/'+allPageCnt);
+}
+
+
+
+
+var MStatus = {
+		onReady : function(){
+			pageInit();
+		},
+
+//		onBack : function(){
+//
+//		},
+
+		onRestore : function(){
+
+		},
+
+		onHide : function(){
+
+		},
+
+		onDestroy : function(){
+
+		},
+
+		onPause : function(){
+
+		},
+
+		onResume : function(){
+
+		}
+}

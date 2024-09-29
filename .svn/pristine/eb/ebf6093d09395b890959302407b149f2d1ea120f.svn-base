@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+	<title>Hello! Mobile!</title>
+</head>
+<script type="text/javascript" src="../js/mcore.min.js"></script>
+
+<body>
+<h1>Hello! Mobile!</h1>
+<div>
+	<h5>0. 기본 테스트</h5>
+	<button id="btngoSimpleAuthSamplePage" onclick="goSimpleAuthSample()">간편인증 샘플 페이지 이동</button><br><br>
+</div>
+</body>
+
+<script type="text/javascript" src="../js/mcore.min.js"></script>
+<script type="text/javascript">
+
+function goSimpleAuthSample(){
+	M.page.html({
+		url: 'simple-auth-sample.html',
+		param: { "poo" : "9fb2afe4e07b4", "screenCaptureOnOff" : "on"},
+		actionType: 'NEW_SCR'
+	});
+};
+
+M.onReady(function(e) {});
+
+M.onHide(function(e) {});
+
+M.onRestore(function(e) {});
+
+var MStatus = {
+		onReady : function(){},
+//		onBack : function(){},
+		onRestore : function(){},
+		onHide : function(){},
+		onDestroy : function(){},
+		onPause : function(){},
+		onResume : function(){}
+}
+</script>
+</html>

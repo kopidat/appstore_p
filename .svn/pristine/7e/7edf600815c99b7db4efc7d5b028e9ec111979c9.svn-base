@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+	
+    <RelativeLayout 
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="#2288E5">
+        <TextView
+        	android:id="@+id/pl_title_text"
+        	android:layout_alignParentLeft="true"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent"
+	        android:textColor="@android:color/white"
+	        android:textStyle="bold"
+	        android:textSize="20sp"
+	        android:gravity="center"/>
+        <Button
+            android:id="@+id/pl_close_btn"
+            android:layout_width="25dp"
+            android:layout_height="21dp"
+            android:layout_marginLeft="15dp"
+            android:layout_marginTop="5dp"
+            android:layout_alignParentTop="true"
+            android:background="@drawable/plugin_3rdparty_pattern_ico_prev"/>
+        <TextView
+            android:id="@+id/pl_close_txt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginLeft="20dp"
+            android:layout_marginBottom="5dp"
+            android:text="이전"
+            android:textColor="#ffffff"
+            android:textSize="10sp"/>
+    </RelativeLayout>
+	
+    <LinearLayout 
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:orientation="vertical"
+        android:gravity="center">
+<!--         <ImageView 
+            android:id="@+id/pl_bar_step"
+            android:layout_width="255dp"
+            android:layout_height="31dp"
+            android:background="@drawable/pl_patternview_bar_step"
+            android:layout_gravity="center"/> -->
+        <TextView 
+	    	android:id="@+id/pl_message_text"
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_marginTop="20dp"
+		    android:minHeight="?android:attr/listPreferredItemHeight"
+		    android:gravity="center"
+		    android:textAppearance="?android:attr/textAppearanceMedium" />
+    </LinearLayout>
+    
+    <LinearLayout 
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        
+		<!-- This FrameLayout is for proper divider drawing. -->
+		<FrameLayout
+		    android:layout_width="match_parent"
+		    android:layout_height="0dp"
+		    android:layout_weight="1"
+		    android:padding="16dp">
+		    <m.client.library.plugin.thirdparty.pattern.view.PatternView
+		        android:id="@+id/pl_pattern"
+		        android:layout_width="match_parent"
+		        android:layout_height="match_parent" />
+		</FrameLayout>
+		
+		<LinearLayout
+		    android:id="@+id/pl_button_container"
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:orientation="horizontal"
+		    android:divider="?android:attr/dividerVertical"
+		    android:dividerPadding="12dp"
+		    android:showDividers="middle">
+		    
+		    <Button
+		        android:id="@+id/pl_left_button"
+		        android:layout_width="0dp"
+		        android:layout_height="wrap_content"
+		        android:layout_weight="1"
+		        style="?android:attr/borderlessButtonStyle"
+		        android:background="#bfbfbf"
+		        android:textColor="#ffffff" />
+		    
+		    <Button
+		        android:id="@+id/pl_right_button"
+		        android:layout_width="0dp"
+		        android:layout_height="wrap_content"
+		        android:layout_weight="1"
+		        style="?android:attr/borderlessButtonStyle"
+		        android:background="#bfbfbf"
+		        android:textColor="#ffffff" />
+		</LinearLayout>
+	</LinearLayout>
+</LinearLayout>

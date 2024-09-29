@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ Copyright (c) 2015 Zhang Hai <Dreaming.in.Code.ZH@Gmail.com>
+  ~ All Rights Reserved.
+-->
+
+<resources>
+
+    <string name="pl_cancel">취소</string>
+    <string name="pl_confirm">확인</string>
+    <string name="pl_confirm_pattern">확인을 위해 패턴을 다시 한 번 그리세요.</string>
+    <string name="pl_continue">계속</string>
+    <string name="pl_draw_pattern">패턴을 설정해 주세요.</string>
+    <string name="pl_draw_pattern_to_unlock">잠금해제 패턴을 그리세요.</string>
+    <string name="pl_forgot_pattern">패턴 재 설정</string>
+    <string name="pl_pattern_confirmed">아래와 같은 잡금해제 패턴을 설정하였습니다.</string>
+    <string name="pl_pattern_recorded">패턴을 저장하였습니다.</string>
+    <string name="pl_pattern_too_short">패턴이 너무 단순합니다. 다시 시도해 주세요.</string>
+    <string name="pl_recording_pattern">패턴 입력이 완료되면 손가락을 떼세요.</string>
+    <string name="pl_redraw">다시 시도</string>
+    <string name="pl_wrong_pattern">잘못된 패턴 입니다. 다시 시도해 주세요.</string>
+    <string name="pl_reg_title">패턴 등록</string>
+    <string name="pl_confirm_title">패턴 인증</string>
+	<string name="pl_pattern_drawing">설정된 로그인 패턴을\n그려주세요.</string>
+	<string name="pl_reset">패턴 재설정</string>
+	<string name="pl_retry_alert">잠금해제 패턴  %d회 오류입니다.\n총 5회 이상 오류 시 재설정후 사용바랍니다.</string>
+</resources>

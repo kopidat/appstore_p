@@ -1,0 +1,488 @@
+/**
+ * SKIMP-FR-017-2.js
+ * @ 간편로그인 설정
+ * 2021.05.31
+ */
+
+var bioCertRstCd = "";
+var fromWhere = "";
+
+var pageInit = function(){
+	pageEvent();
+
+	easyLoginUseCheck();
+	fingerCheck();
+};
+
+var pageEvent = function(){
+
+	//간편로그인 사용여부 토글
+	$(document).on('click', '.login-simple input[type=checkbox]', function(){
+		if($(this).is(':checked')) {
+			$('.simple-auth').show();
+
+			//상태가 on 이 되어도 간편인증 데이터가 없으면 상태값 N
+			if(!StringUtil.isEmpty(MData.storage('PatternLoginData')) || !StringUtil.isEmpty(MData.storage('PinLoginData'))  || !StringUtil.isEmpty(MData.storage('BioLoginData'))){
+				MData.storage("useEasyLogin", 'Y');
+				easyLoginUseCheck();
+			}else{
+				MData.storage("useEasyLogin", 'N');
+			}
+		} else {
+			$('.simple-auth').hide();
+			MData.storage("useEasyLogin", 'N');
+//			MData.removeStorage('lastLoginType');
+		}
+	});
+
+
+	//TODO : lastLoginType - 마지막 로그인 타입 / useEasyLogin - 간편인증 사용여부 / ***LoginData - 각각의 간편인증 데이터
+	//간편로그인 설정
+	$(document).on('click', '.simple-auth input', function(){
+		var thisId = $(this).attr('id');
+		$('.simple-auth input').prop('checked', false);
+		$('.simple-auth ul').addClass('none');
+		$(this).prop('checked', true);
+
+		if(thisId== "BIO"){
+			if(bioCertRstCd == "402"){
+				M.pop.alert({
+			        message: '디바에스에 등록된 생체인증 정보가 없습니다.\n[확인] 버튼을 누르시면 설정으로 이동합니다.',
+			        buttons: ['확인', '취소'],
+			        callback: function(idx) {
+			        	if (idx == 0) {
+			        		fromWhere = 'setBIO';
+			        		
+			        		//등록된 생체인증 정보가 없을 때, 설정 페이지로 이동
+			    			if(M.navigator.device("ios")) {     // ios일 경우
+			    		        var result = M.plugin('3rd_iOS_fingerprint_basic').moveSetting();
+			    		        console.log('result : ' + JSON.stringify(result));
+			    		    } else if (M.navigator.device("android")) {     // android일 경우
+			    		        var result = M.plugin('3rd_fingerprint_basic').moveSetting();
+			    		        console.log('result : ' + JSON.stringify(result));
+			    		    }
+			        	} else {
+			        		$('#BIO').prop('checked', false);
+			        		
+			        		//인증 실패 시 화면 재설정
+			        		resetScreen();
+			        	}
+			        }
+				});
+			}else{
+				bioCert.auth((state, result) => {
+					if(result.message == "SUCCESS"){
+						MData.storage('lastLoginType', 'BIO');
+						MData.storage('BioLoginData', 'Y');
+						MData.storage("useEasyLogin", 'Y');
+						setScreen();
+						MPopup.alert("생체 인증이 설정되었습니다.");
+					}else if(result.message == 'CANCEL' || result.errorCode == '10' || result.errorCode == '5' || result.errorCode == '406'){
+//						MPopup.alert({
+//							message : "생체 인증 등록을 취소하였습니다."
+//						});
+						$('.simple-auth input').prop('checked', false);
+
+						//인증 실패 시 화면 재설정
+						resetScreen();
+					}else{
+						$(this).parent().parent('ul').addClass('none');
+						$('.simple-auth input').prop('checked', false);
+						MPopup.alert("생체 인증 등록에 실패하였습니다.");
+						
+						//인증 실패 시 화면 재설정
+						resetScreen();
+					}
+				});
+			}
+		}
+		else if(thisId == "Pattern"){
+			if(StringUtil.isEmpty(MData.storage("PatternLoginData"))){
+				MPopup.confirm({
+					message : "패턴 등록정보가 없습니다. 패턴을 등록하시겠습니까?",
+					callback : function(idx){
+						if(idx == 0){
+							ptCert.reset((state, result) => {
+								if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+									$('#btnChangePattern').parent().parent('ul').removeClass('none');
+									MData.storage('lastLoginType', 'PATTERN');
+									MData.storage('PatternLoginData', 'Y');
+									MData.storage("useEasyLogin", 'Y');
+									setScreen();
+									MPopup.alert("패턴이 설정되었습니다.");
+								}else if(result.message == 'CANCEL' || result.message == 'Canceled Pattern Editing.'){
+//									MPopup.alert({
+//										message : "패턴 인증 등록을 취소하였습니다."
+//									});
+									$('.simple-auth input').prop('checked', false);
+
+									//인증 실패 시 화면 재설정
+									resetScreen();
+								}else{
+									$(this).parent().parent('ul').addClass('none');
+									$('.simple-auth input').prop('checked', false);
+									MPopup.alert("패턴 설정에 실패하였습니다.");
+									
+									//인증 실패 시 화면 재설정
+									resetScreen();
+								}
+							});
+						}else{
+							$('.simple-auth input').prop('checked', false);
+							
+							//인증 실패 시 화면 재설정
+							resetScreen();
+						};
+					}
+				});
+			}else{
+				$('#btnChangePattern').parent().parent('ul').removeClass('none');
+				MData.storage('lastLoginType', 'PATTERN');
+			}
+		}
+		else if(thisId == "PIN"){
+			if(StringUtil.isEmpty(MData.storage("PinLoginData"))){
+				MPopup.confirm({
+					message : "핀번호 등록 정보가 없습니다. 핀번호를 등록하시겠습니까?",
+					callback : function(idx){
+						if(idx == 0){
+							pinCert.register((status, result) => {
+								if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+									$('#btnChangePIN').parent().parent('ul').removeClass('none');
+									MData.storage('lastLoginType', 'PIN');
+									MData.storage('PinLoginData', 'Y');
+									MData.storage("useEasyLogin", 'Y');
+									setScreen();
+									MPopup.alert("핀번호가 설정되었습니다.");
+								}else if(result.message == 'CANCEL'){
+//									MPopup.alert({
+//										message : "PIN 인증 등록을 취소하였습니다."
+//									});
+									$('.simple-auth input').prop('checked', false);
+
+									//인증 실패 시 화면 재설정
+									resetScreen();
+								}else{
+									$(this).parent().parent('ul').addClass('none');
+									$('.simple-auth input').prop('checked', false);
+									MPopup.alert("핀번호 설정에 실패하였습니다.");
+									
+									//인증 실패 시 화면 재설정
+									resetScreen();
+								}
+							});
+						}else{
+							$('.simple-auth input').prop('checked', false);
+							
+							//인증 실패 시 화면 재설정
+							resetScreen();
+						};
+					}
+				});
+			}else{
+				$('#btnChangePIN').parent().parent('ul').removeClass('none');
+				MData.storage('lastLoginType', 'PIN');
+			}
+		}
+	});
+
+
+	//패턴 재설정
+	$(document).on('click', '#btnChangePattern', function(){
+		MPopup.confirm({
+			message : "패턴을 재설정 하시겠습니까?",
+			callback : function(idx){
+				if(idx == 0){
+					ptCert.reset((state, result) => {
+						if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+							MData.storage('lastLoginType', 'PATTERN');
+							MData.storage('PatternLoginData', 'Y');
+							MData.storage("useEasyLogin", 'Y');
+							setScreen();
+							MPopup.alert("패턴 인증 재설정이 완료되었습니다.");
+						}else if(result.message == 'CANCEL' || result.message == 'Canceled Pattern Editing.'){
+//							MPopup.alert({
+//								message : "패턴 인증 재등록을 취소하였습니다"
+//							});
+						}else{
+							MPopup.alert("패턴 재설정에 실패하였습니다.");
+						}
+					});
+					
+//					ptCert.lock((status, result) => {
+//						if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+//							ptCert.reset((state, result) => {
+//								if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+//									MData.storage('lastLoginType', 'PATTERN');
+//									MData.storage('PatternLoginData', 'Y');
+//									MData.storage("useEasyLogin", 'Y');
+//									setScreen();
+//									MPopup.alert("패턴 인증 재설정이 완료되었습니다.");
+//								}else if(result.message == 'CANCEL'){
+////									MPopup.alert({
+////										message : "패턴 인증 재등록을 취소하였습니다"
+////									});
+//								}else{
+//									MPopup.alert("패턴이 재설정에 실패하였습니다.");
+//								}
+//							});
+//						}else if(result.message == 'CANCEL'){
+//							MPopup.alert({
+//								message : "패턴 인증을 취소하였습니다."
+//							});
+//						}else{
+//							MPopup.alert({
+//								message : "패턴이 틀렸습니다."
+//							});
+//						}
+//					});
+				}
+			}
+		});
+	});
+
+
+	//PIN 재설정
+	$(document).on('click', '#btnChangePIN', function(){
+		MPopup.confirm({
+			message : "PIN 번호를 재설정 하시겠습니까?",
+			callback : function(idx){
+				if(idx == 0){
+					pinCert.register((status, result) => {
+						if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+							MData.storage('lastLoginType', 'PIN');
+							MData.storage('PinLoginData', 'Y');
+							MData.storage("useEasyLogin", 'Y');
+							setScreen();
+							MPopup.alert("PIN 번호 인증 재설정이 완료되었습니다.");
+						}else if(result.message == 'CANCEL'){
+//							MPopup.alert({
+//								message : "PIN 번호 인증 재등록을 취소하였습니다."
+//							});
+						}else{
+							MPopup.alert("PIN 번호 인증 재설정을 실패하였습니다.");
+						}
+					});
+					
+//					pinCert.auth((status, result) => {
+//						if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+//							pinCert.register((status, result) => {
+//								if(result.message == "SUCCESS" || result.result == "SUCCESS"){
+//									MData.storage('lastLoginType', 'PIN');
+//									MData.storage('PinLoginData', 'Y');
+//									MData.storage("useEasyLogin", 'Y');
+//									setScreen();
+//									MPopup.alert("PIN 번호 인증 재설정이 완료되었습니다.");
+//								}else if(result.message == 'CANCEL'){
+////									MPopup.alert({
+////										message : "PIN 번호 인증 재등록을 취소하였습니다."
+////									});
+//								}else{
+//									MPopup.alert("PIN 번호 인증 재설정을 실패하였습니다.");
+//								}
+//							});
+//						}else if(result.message == 'CANCEL'){
+//							MPopup.alert({
+//								message : "PIN 번호 인식을 취소하였습니다."
+//							});
+//						}else{
+//							MPopup.alert({
+//								message : "PIN 번호가 틀렸습니다."
+//							});
+//						}
+//					});
+				}
+			}
+		});
+	});
+
+
+	//footer 페이지 이동
+	$(document).on('click', '#btnFooter button', function(){
+		var thisId = $(this).attr('id');
+		var thisPageUrl = "";
+
+		if(thisId == "btnGroup"){
+			thisPageUrl = "SKIMP-FR-007.html";
+		}else if(thisId == "btnUpdate"){
+			thisPageUrl = "SKIMP-FR-013.html";
+		}else if(thisId == "btnNotice"){
+			thisPageUrl = "SKIMP-FR-015.html";
+		}else if(thisId == "btnSetting"){
+			thisPageUrl = "SKIMP-FR-017.html";
+		}
+
+//		if(thisId != "btnSetting"){
+			MPage.html({
+				url : thisPageUrl,
+				animation : "NONE",
+			})
+//		}
+	});
+
+};
+
+//지문인증 등록 후 재확인
+var bioRegRechk = function(){
+	bioCert.auth((state, result) => {
+		if(result.message == "SUCCESS"){
+			MData.storage('lastLoginType', 'BIO');
+			MData.storage('BioLoginData', 'Y');
+			MData.storage("useEasyLogin", 'Y');
+			setScreen();
+			MPopup.alert("생체 인증이 설정되었습니다.");
+		}else if(result.message == 'CANCEL' || result.errorCode == '10'){
+			MPopup.alert({
+				message : "생체 인증 등록을 취소하였습니다."
+			});
+
+			$('#BIO').prop('checked', false);
+
+			//인증 실패 시 화면 재설정
+			resetScreen();
+		}else if (result.message == '지문이 등록되지 않았습니다.' && result.result == 'FAIL') {
+			MPopup.alert({
+				message : result.message
+			});
+
+			$('#BIO').prop('checked', false);
+
+			///인증 실패 시 화면 재설정
+			resetScreen();
+		}else{
+			$(this).parent().parent('ul').addClass('none');
+			$('.simple-auth input').prop('checked', false);
+			MPopup.alert("생체 인증 등록에 실패하였습니다.");
+			
+			$('#BIO').prop('checked', false);
+			
+			//인증 실패 시 화면 재설정
+			resetScreen();
+		}
+	});
+}
+
+//인증 실패 시 화면 재설정
+var resetScreen = function(){
+	
+	switch (MData.storage('lastLoginType')) {
+		case 'BIO':
+			$('#BIO').prop('checked', true);
+			break;
+		case 'PIN':
+			$('#PIN').prop('checked', true);
+			$('#btnChangePIN').parent().parent('ul').removeClass('none');
+			break;
+		case 'PATTERN':
+			$('#Pattern').prop('checked', true);
+			$('#btnChangePattern').parent().parent('ul').removeClass('none');
+			break;
+		default:
+			break;
+	}
+}
+
+//간편로그인 사용 체크
+var easyLoginUseCheck = function(){
+	if(MData.storage('useEasyLogin') == "Y"){
+		$('.login-simple input[type=checkbox]').prop('checked', true);
+
+		//마지막 로그인 방법을 표시
+		if(MData.storage('lastLoginType') == "BIO"){
+			$('#BIO').prop('checked', true);
+		}else if(MData.storage('lastLoginType') == "PATTERN"){
+			$('#Pattern').prop('checked', true);
+			$('#btnChangePattern').parent().parent('ul').removeClass('none');
+		}else if(MData.storage('lastLoginType') == "PIN"){
+			$('#PIN').prop('checked', true);
+			$('#btnChangePIN').parent().parent('ul').removeClass('none');
+		}
+
+		$('.simple-auth').show();
+		
+	}else{
+		$('.login-simple input[type=checkbox]').prop('checked', false);
+		$('.simple-auth').hide();
+	}
+
+	setScreen();
+
+};
+
+
+//저장된 생체인증로그인 데이터에 따른 화면처리
+var setScreen = function(){
+	if(MData.storage('BioLoginData') == 'Y'){
+		$('.simple-auth dl').eq(0).find('dt').text('생체인증 사용');
+	}else{
+		$('.simple-auth dl').eq(0).find('dt').html('생체인증 사용<em class="un-used">(미등록)</em>');
+	}
+
+	if(MData.storage('PatternLoginData') == 'Y'){
+		$('.simple-auth dl').eq(1).find('dt').text('패턴인증 사용');
+	}else{
+		$('.simple-auth dl').eq(1).find('dt').html('패턴인증 사용<em class="un-used">(미등록)</em>');
+	}
+
+	if(MData.storage('PinLoginData') == 'Y'){
+		$('.simple-auth dl').eq(2).find('dt').text('핀번호 사용');
+	}else{
+		$('.simple-auth dl').eq(2).find('dt').html('핀번호 사용<em class="un-used">(미등록)</em>');
+	}
+}
+
+
+//생체인증 등록 여부 확인
+var fingerCheck = function(){
+	bioCert.check((status, result) => {
+		console.log(status);
+		if(status == "SUCCESS"){
+			if(result.result != "SUCCESS"){
+				bioCertRstCd = result.result_code;
+			}
+			$('#BIO').removeClass('none');
+		}else{
+			$('#BIO').addClass('none');
+		}
+	});
+}
+
+
+
+var MStatus = {
+		onReady : function(){
+			pageInit();
+		},
+
+//		onBack : function(){
+//
+//		},
+
+		onRestore : function(){
+			
+		},
+
+		onHide : function(){
+
+		},
+
+		onDestroy : function(){
+
+		},
+
+		onPause : function(){
+
+		},
+
+		onResume : function(){
+			if (fromWhere == 'setBIO') {
+				
+				//지문인증 등록 후 재확인
+				bioRegRechk();
+				fromWhere = '';
+			}
+			
+			console.log("onResume");
+			loginAuth();
+		}
+}
